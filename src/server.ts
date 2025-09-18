@@ -34,11 +34,8 @@ export class MarkrealmServer {
   }
 
   private setupApp(): void {
-    // Set EJS as template engine
     this.app.set("view engine", "ejs");
     this.app.set("views", path.join(__dirname, "web", "template"));
-
-    // Serve static files
     this.app.use(
       "/styles.css",
       express.static(path.join(__dirname, "web", "public", "styles.css"))
@@ -47,9 +44,6 @@ export class MarkrealmServer {
       "/reload-client.js",
       express.static(path.join(__dirname, "web", "public", "reload-client.js"))
     );
-
-    // Routes
-    this.app.get("/", this.handleRoute.bind(this));
     this.app.get("/*", this.handleRoute.bind(this));
   }
 
@@ -57,31 +51,32 @@ export class MarkrealmServer {
     req: express.Request,
     res: express.Response
   ): Promise<void> {
-    try {
-      const route = req.path === "/" ? "/" : req.path;
+    const route = req.path === "/" ? "/" : req.path;
 
-      // Skip config files and other non-content files
-      if (this.isConfigFile(route)) {
-        res.status(404).send(this.render404Page(route));
-        return;
-      }
-
-      const doc = this.contentIndex.byRoute.get(route);
-
-      if (!doc) {
-        res.status(404).send(this.render404Page(route));
-        return;
-      }
-
-      const sidebar = this.renderSidebar(
-        generateSidebar(this.contentIndex, this.config.sidebar.order)
-      );
-      const html = await this.renderPage(doc, sidebar, true);
-      res.send(html);
-    } catch (error) {
-      console.error("Error rendering page:", error);
-      res.status(500).send("Internal Server Error");
+    if (/\.(yaml|yml|json|config)/.test(route)) {
+      res
+        .status(404)
+        .send(
+          `<h1>404 - Page Not Found</h1><p>The page <code>${route}</code> could not be found.</p><a href="/">← Back to Home</a>`
+        );
+      return;
     }
+
+    const doc = this.contentIndex.byRoute.get(route);
+    if (!doc) {
+      res
+        .status(404)
+        .send(
+          `<h1>404 - Page Not Found</h1><p>The page <code>${route}</code> could not be found.</p><a href="/">← Back to Home</a>`
+        );
+      return;
+    }
+
+    const sidebar = this.renderSidebar(
+      generateSidebar(this.contentIndex, this.config.sidebar.order)
+    );
+    const html = await this.renderPage(doc, sidebar, true);
+    res.send(html);
   }
 
   private async renderPage(
@@ -111,65 +106,22 @@ export class MarkrealmServer {
   }
 
   private renderSidebar(sidebarItems: SidebarItem[]): string {
-    return this.renderSidebarItems(sidebarItems, 0);
-  }
+    if (sidebarItems.length === 0) return "";
 
-  private renderSidebarItems(items: SidebarItem[], depth: number): string {
-    if (items.length === 0) return "";
-
-    const indent = "  ".repeat(depth);
-    let html = `${indent}<ul>\n`;
-
-    for (const item of items) {
-      html += `${indent}  <li>\n`;
-      html += `${indent}    <a href="${item.route}" class="sidebar-link">${item.title}</a>\n`;
-
-      if (item.children && item.children.length > 0) {
-        html += `${indent}    <div class="children">\n`;
-        html += this.renderSidebarItems(item.children, depth + 2);
-        html += `${indent}    </div>\n`;
+    let html = "<ul>\n";
+    for (const item of sidebarItems) {
+      html += `  <li><a href="${item.route}" class="sidebar-link">${item.title}</a>`;
+      if (item.children?.length) {
+        html += "<ul>";
+        for (const child of item.children) {
+          html += `<li><a href="${child.route}" class="sidebar-link">${child.title}</a></li>`;
+        }
+        html += "</ul>";
       }
-
-      html += `${indent}  </li>\n`;
+      html += "</li>\n";
     }
-
-    html += `${indent}</ul>\n`;
+    html += "</ul>\n";
     return html;
-  }
-
-  private isConfigFile(route: string): boolean {
-    const configFilePatterns = [
-      /\.yaml$/,
-      /\.yml$/,
-      /\.json$/,
-      /markrealm\.config/,
-      /\.config\./,
-    ];
-
-    return configFilePatterns.some((pattern) => pattern.test(route));
-  }
-
-  private render404Page(route: string): string {
-    return `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Page Not Found - ${this.config.site.title}</title>
-        <link rel="stylesheet" href="/styles.css">
-      </head>
-      <body>
-        <div class="container">
-          <main class="content">
-            <h1>404 - Page Not Found</h1>
-            <p>The page <code>${route}</code> could not be found.</p>
-            <p><a href="/">← Back to Home</a></p>
-          </main>
-        </div>
-      </body>
-      </html>
-    `;
   }
 
   private setupFileWatcher(): void {
@@ -179,35 +131,28 @@ export class MarkrealmServer {
       ignoreInitial: true,
     });
 
-    this.watcher.on("change", (filePath: string) => {
-      console.log(`File changed: ${filePath}`);
-      this.handleFileChange(filePath);
-    });
+    const handleFileEvent = (filePath: string, eventType: string) => {
+      console.log(`File ${eventType}: ${filePath}`);
+      if (eventType === "removed") {
+        removeDocumentFromIndex(this.contentIndex, filePath);
+      } else {
+        updateDocumentInIndex(
+          this.contentIndex,
+          filePath,
+          this.docsDir,
+          this.config.ignore
+        );
+      }
+      this.broadcastReload();
+    };
 
-    this.watcher.on("add", (filePath: string) => {
-      console.log(`File added: ${filePath}`);
-      this.handleFileChange(filePath);
-    });
-
-    this.watcher.on("unlink", (filePath: string) => {
-      console.log(`File removed: ${filePath}`);
-      this.handleFileRemoval(filePath);
-    });
-  }
-
-  private handleFileChange(filePath: string): void {
-    updateDocumentInIndex(
-      this.contentIndex,
-      filePath,
-      this.docsDir,
-      this.config.ignore
+    this.watcher.on("change", (filePath) =>
+      handleFileEvent(filePath, "changed")
     );
-    this.broadcastReload();
-  }
-
-  private handleFileRemoval(filePath: string): void {
-    removeDocumentFromIndex(this.contentIndex, filePath);
-    this.broadcastReload();
+    this.watcher.on("add", (filePath) => handleFileEvent(filePath, "added"));
+    this.watcher.on("unlink", (filePath) =>
+      handleFileEvent(filePath, "removed")
+    );
   }
 
   private broadcastReload(): void {
@@ -229,66 +174,32 @@ export class MarkrealmServer {
       path: "/_livereload",
     });
 
-    this.wss.on("connection", (ws, req) => {
-      console.log(
-        "Live reload client connected from:",
-        req.socket.remoteAddress
-      );
-
-      ws.on("close", () => {
-        console.log("Live reload client disconnected");
-      });
-
-      ws.on("error", (error) => {
-        console.error("WebSocket error:", error);
-      });
-
-      // Send a ping to confirm connection
+    this.wss.on("connection", (ws) => {
+      console.log("LiveReload client connected");
       ws.send(
         JSON.stringify({ type: "connected", message: "LiveReload ready" })
       );
-    });
-
-    this.wss.on("error", (error) => {
-      console.error("WebSocket server error:", error);
+      ws.on("close", () => console.log("LiveReload client disconnected"));
     });
 
     console.log("WebSocket server setup on path: /_livereload");
   }
 
   public async start(): Promise<void> {
-    try {
-      // Load configuration
-      this.config = loadConfig(this.docsDir);
-      console.log(`Loaded config from ${this.docsDir}`);
+    this.config = loadConfig(this.docsDir);
+    this.contentIndex = await buildContentIndex(
+      this.docsDir,
+      this.config.ignore
+    );
 
-      // Build content index
-      console.log("Building content index...");
-      this.contentIndex = await buildContentIndex(
-        this.docsDir,
-        this.config.ignore
-      );
+    this.server = createServer(this.app);
+    this.setupWebSocket();
+    this.setupFileWatcher();
+
+    this.server.listen(this.options.port, () => {
+      console.log(`Server running at http://localhost:${this.options.port}`);
       console.log(`Indexed ${this.contentIndex.byRoute.size} documents`);
-
-      // Create HTTP server
-      this.server = createServer(this.app);
-
-      // Setup WebSocket for live reload
-      this.setupWebSocket();
-
-      // Start server
-      this.server.listen(this.options.port, () => {
-        console.log(`Server running at http://localhost:${this.options.port}`);
-        console.log(`Serving docs from: ${this.docsDir}`);
-      });
-
-      // Setup file watcher
-      this.setupFileWatcher();
-      console.log("Watching for file changes...");
-    } catch (error) {
-      console.error("Failed to start server:", error);
-      process.exit(1);
-    }
+    });
   }
 
   public stop(): void {
