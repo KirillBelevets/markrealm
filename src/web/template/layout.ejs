@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= siteTitle %> — <%= pageTitle %></title>
+    <link rel="stylesheet" href="/styles.css" />
+    <% if (isDev) { %>
+    <script src="/reload-client.js"></script>
+    <% } %>
+  </head>
+  <body>
+    <div class="container">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h1><%= siteTitle %></h1>
+        </div>
+        <nav class="sidebar-nav"><%- sidebar %></nav>
+      </aside>
+
+      <main class="content"><%- content %></main>
+    </div>
+  </body>
+</html>

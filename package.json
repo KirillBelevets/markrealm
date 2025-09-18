@@ -1,0 +1,52 @@
+{
+  "name": "markrealm",
+  "version": "1.0.0",
+  "description": "A Realm competitor prototype - TypeScript Node CLI for rendering Markdoc files as a website",
+  "main": "dist/cli.js",
+  "bin": {
+    "markrealm": "dist/cli.js"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts dev --dir examples/docs",
+    "build": "tsx src/cli.ts build --dir examples/docs --out dist",
+    "test": "vitest run",
+    "compile": "tsc",
+    "prepublishOnly": "npm run compile"
+  },
+  "keywords": [
+    "markdown",
+    "markdoc",
+    "documentation",
+    "static-site",
+    "cli",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "chokidar": "^3.5.3",
+    "ws": "^8.14.2",
+    "@markdoc/markdoc": "^0.3.0",
+    "gray-matter": "^4.0.3",
+    "js-yaml": "^4.1.0",
+    "globby": "^13.2.2",
+    "ejs": "^3.1.9",
+    "minimist": "^1.2.8",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "tsx": "^4.6.2",
+    "vitest": "^1.0.4",
+    "@types/node": "^20.10.5",
+    "@types/express": "^4.17.21",
+    "@types/ws": "^8.5.10",
+    "@types/ejs": "^3.1.4",
+    "@types/js-yaml": "^4.0.9",
+    "@types/minimist": "^1.2.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

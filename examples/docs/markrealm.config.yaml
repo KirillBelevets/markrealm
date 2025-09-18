@@ -1,0 +1,16 @@
+site:
+  title: "Markrealm Documentation"
+  baseUrl: "/"
+
+sidebar:
+  order:
+    - "index.md"
+    - "guide/*"
+    - "technical-documentation.md"
+
+linkcheck:
+  enabled: true
+  externalTimeoutMs: 5000
+
+ignore:
+  - "drafts/**"
