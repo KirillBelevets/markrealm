@@ -1,30 +1,30 @@
 export interface DocMeta {
-  path: string; // absolute file path
-  route: string; // URL route (e.g., "/guide/getting-started")
-  title: string; // page title from front-matter or first H1
-  headings: Heading[]; // extracted headings for TOC
-  frontMatter: Record<string, any>; // parsed front-matter
-  links: Link[]; // extracted links for validation
-  html: string; // rendered HTML content
+  path: string;
+  route: string;
+  title: string;
+  headings: Heading[];
+  frontMatter: Record<string, any>;
+  links: Link[];
+  html: string;
 }
 
 export interface Heading {
-  level: number; // 1-6
+  level: number;
   text: string;
-  id: string; // generated anchor ID
+  id: string;
 }
 
 export interface Link {
-  href: string; // original href
-  text: string; // link text
-  type: "internal" | "external"; // link type
-  target?: string; // target file path for internal links
-  hash?: string; // fragment identifier
+  href: string;
+  text: string;
+  type: "internal" | "external";
+  target?: string;
+  hash?: string;
 }
 
 export interface ContentIndex {
-  byRoute: Map<string, DocMeta>; // route -> DocMeta
-  byPath: Map<string, DocMeta>; // absolute path -> DocMeta
+  byRoute: Map<string, DocMeta>;
+  byPath: Map<string, DocMeta>;
 }
 
 export interface SidebarItem {
