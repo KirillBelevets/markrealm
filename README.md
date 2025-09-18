@@ -4,13 +4,13 @@ A production-ready TypeScript Node CLI that renders a directory of Markdoc files
 
 ## Features
 
-- 🚀 **Live Reload**: Edit your documentation and see changes instantly
-- 📁 **Auto Sidebar**: Automatically generates navigation from your file structure
-- 🔗 **Link Checking**: Validates internal and external links
-- 🏗️ **Static Build**: Export your documentation as a static website
-- 📝 **Markdoc Support**: Full support for Markdoc syntax and features
-- ⚙️ **Configurable**: Customize your site with YAML configuration
-- 🎨 **Responsive Design**: Clean, modern UI that works on all devices
+- **Live Reload**: Edit your documentation and see changes instantly
+- **Auto Sidebar**: Automatically generates navigation from your file structure
+- **Link Checking**: Validates internal and external links
+- **Static Build**: Export your documentation as a static website
+- **Markdoc Support**: Full support for Markdoc syntax and features
+- **Configurable**: Customize your site with YAML configuration
+- **Responsive Design**: Clean, modern UI that works on all devices
 
 ## Quick Start
 

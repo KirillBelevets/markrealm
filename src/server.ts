@@ -180,17 +180,17 @@ export class MarkrealmServer {
     });
 
     this.watcher.on("change", (filePath: string) => {
-      console.log(`📝 File changed: ${filePath}`);
+      console.log(`File changed: ${filePath}`);
       this.handleFileChange(filePath);
     });
 
     this.watcher.on("add", (filePath: string) => {
-      console.log(`➕ File added: ${filePath}`);
+      console.log(`File added: ${filePath}`);
       this.handleFileChange(filePath);
     });
 
     this.watcher.on("unlink", (filePath: string) => {
-      console.log(`➖ File removed: ${filePath}`);
+      console.log(`File removed: ${filePath}`);
       this.handleFileRemoval(filePath);
     });
   }
@@ -212,24 +212,48 @@ export class MarkrealmServer {
 
   private broadcastReload(): void {
     if (this.wss) {
+      const message = JSON.stringify({ type: "reload", timestamp: Date.now() });
+      console.log(`Broadcasting reload to ${this.wss.clients.size} clients`);
+
       this.wss.clients.forEach((client) => {
         if (client.readyState === client.OPEN) {
-          client.send("reload");
+          client.send(message);
         }
       });
     }
   }
 
   private setupWebSocket(): void {
-    this.wss = new WebSocketServer({ server: this.server });
+    this.wss = new WebSocketServer({
+      server: this.server,
+      path: "/_livereload",
+    });
 
-    this.wss.on("connection", (ws) => {
-      console.log("Live reload client connected");
+    this.wss.on("connection", (ws, req) => {
+      console.log(
+        "Live reload client connected from:",
+        req.socket.remoteAddress
+      );
 
       ws.on("close", () => {
         console.log("Live reload client disconnected");
       });
+
+      ws.on("error", (error) => {
+        console.error("WebSocket error:", error);
+      });
+
+      // Send a ping to confirm connection
+      ws.send(
+        JSON.stringify({ type: "connected", message: "LiveReload ready" })
+      );
     });
+
+    this.wss.on("error", (error) => {
+      console.error("WebSocket server error:", error);
+    });
+
+    console.log("WebSocket server setup on path: /_livereload");
   }
 
   public async start(): Promise<void> {
@@ -254,15 +278,13 @@ export class MarkrealmServer {
 
       // Start server
       this.server.listen(this.options.port, () => {
-        console.log(
-          `Server running at http://localhost:${this.options.port}`
-        );
+        console.log(`Server running at http://localhost:${this.options.port}`);
         console.log(`Serving docs from: ${this.docsDir}`);
       });
 
       // Setup file watcher
       this.setupFileWatcher();
-      console.log("👀 Watching for file changes...");
+      console.log("Watching for file changes...");
     } catch (error) {
       console.error("Failed to start server:", error);
       process.exit(1);

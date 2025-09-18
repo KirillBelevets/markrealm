@@ -5,8 +5,8 @@ site:
 sidebar:
   order:
     - "index.md"
-    - "guide/*"
-    - "technical-documentation.md"
+    - "getting-started.md"
+    - "api-reference.md"
 
 linkcheck:
   enabled: true
